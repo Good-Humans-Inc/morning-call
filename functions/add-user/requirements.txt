@@ -1,0 +1,4 @@
+functions-framework==3.*
+google-cloud-firestore==2.*
+pytz==2024.1
+phonenumbers==8.13.37

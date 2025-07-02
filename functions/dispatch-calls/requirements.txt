@@ -1,0 +1,6 @@
+functions-framework==3.*
+google-cloud-firestore==2.*
+google-cloud-pubsub==2.*
+requests==2.*
+pytz==2024.1
+elevenlabs>=2.5.0
