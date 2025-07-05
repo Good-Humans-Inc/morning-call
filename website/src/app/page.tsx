@@ -175,7 +175,7 @@ export default function Home() {
       <div className="w-full max-w-4xl p-8 space-y-8 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-pink-100">
         <div className="text-center">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 via-rose-500 to-purple-600 bg-clip-text text-transparent">✨ Create Your Morning Call ✨</h1>
-          <p className="mt-2 text-rose-700">Heyyyy this is <a href="https://www.tiktok.com/@injccwro" target="_blank" rel="noopener noreferrer" className="text-pink-600 hover:text-pink-800 underline font-medium">@injccwro</a>, thanks for all the love 😭❤️ If somthing's not working or there's a character/feature you want to see, just lmk on tiktok! I also made a Discord.</p>
+          <p className="mt-2 text-rose-700">Heyyyy this is <a href="https://www.tiktok.com/@injccwro" target="_blank" rel="noopener noreferrer" className="text-pink-600 hover:text-pink-800 underline font-medium">@injccwro</a>, thanks for all the love 😭❤️ If somthing's not working or you want to request a feature/character, just lmk on tiktok! I also made a Discord.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -357,9 +357,6 @@ export default function Home() {
                   ))}
                 </select>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                Each character has their own personality and way of talking to you
-              </p>
             </div>
 
             <div>
