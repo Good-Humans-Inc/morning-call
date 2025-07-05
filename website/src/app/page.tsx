@@ -217,7 +217,7 @@ export default function Home() {
                 placeholder="+1 (555) 123-4567"
               />
               <p className="mt-1 text-xs text-gray-500">
-                Include country code (e.g., +1 for US/Canada)
+                Must include country code (e.g., +1 for US/Canada)
               </p>
             </div>
 
@@ -324,7 +324,7 @@ export default function Home() {
                 </optgroup>
               </select>
               <p className="mt-1 text-xs text-gray-500">
-                So it should be {currentTime} for you right now.
+                Sanity check: it should be {currentTime} for you right now
               </p>
             </div>
           </div>
@@ -366,7 +366,7 @@ export default function Home() {
               <textarea 
                 id="description"
                 name="description"
-                rows={8}
+                rows={15}
                 required
                 readOnly
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg shadow-sm text-gray-700 cursor-not-allowed"

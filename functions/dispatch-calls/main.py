@@ -54,24 +54,52 @@ def dispatch_calls(cloud_event):
         user_data = user.to_dict()
         phone_number = user_data.get("phoneNumber")
         city = user_data.get("city")
+        character_id = user_data.get("character") # e.g., 'love-and-deepspace-caleb'
+        character_description = user_data.get("characterDescription") # The prompt with the user's name
 
         if not phone_number:
             print(f"Skipping user {user.id} due to missing phone number.")
             continue
+        
+        if not character_id or not character_description:
+            print(f"Skipping user {user.id} due to missing character data.")
+            continue
+
+        # Fetch the character's voiceId from the 'characters' collection
+        try:
+            character_ref = db.collection("characters").document(character_id)
+            character_doc = character_ref.get()
+            if character_doc.exists:
+                voice_id = character_doc.to_dict().get("voiceId")
+            else:
+                print(f"Character {character_id} not found for user {user.id}. Skipping.")
+                continue
+        except Exception as e:
+            print(f"Error fetching character {character_id} for user {user.id}: {e}")
+            continue
+
+        if not voice_id or 'placeholder' in voice_id:
+            print(f"Skipping user {user.id} due to missing or placeholder voiceId for character {character_id}.")
+            continue
 
         try:
             # Make an immediate call using the conversational AI
-            print(f"Making call to {user_data.get('name', 'User')} at {phone_number}")
+            print(f"Making call to {user_data.get('name', 'User')} at {phone_number} with character {character_id} and voice {voice_id}")
             
             # As per the documentation, we should use the twilio.outbound_call method
             # and pass dynamic variables inside the conversation_initiation_client_data object.
-            # Ref: https://elevenlabs.io/docs/conversational-ai/api-reference/twilio/outbound-call
+            # The voice_id override also goes in this object, under the "tts" key.
+            # Ref: https://elevenlabs.io/docs/conversational-ai/customization/overrides
             conversation_data = {
                 "dynamic_variables": {
                     "user_id": user.id,
                     "user": user_data.get("name", "User"),
                     "user_city": city,
-                    "todays_weather": weather_forecasts.get(city, "No data available.")
+                    "todays_weather": weather_forecasts.get(city, "No data available."),
+                    "character_description": character_description
+                },
+                "tts": {
+                    "voice_id": voice_id
                 }
             }
 
