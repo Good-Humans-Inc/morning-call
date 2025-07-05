@@ -1,42 +1,131 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface Character {
+  id: string;
+  name: string;
+  game: string;
+  description: string;
+  isActive: boolean;
+  sortOrder: number;
+}
 
 export default function Home() {
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     phoneNumber: '',
     city: '',
     localCallTime: '09:00',
     timezone: 'America/Los_Angeles',
-    character: 'Xavier',
-    description: 'A brief, friendly chat to start your day, {{your name}}. We\'ll check in on your schedule and maybe share a fun fact.'
+    character: '',
+    description: ''
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
 
+  // Fetch characters on component mount
+  useEffect(() => {
+    const fetchCharacters = async () => {
+      try {
+        const response = await fetch('/api/characters');
+        if (response.ok) {
+          const charactersData = await response.json();
+          setCharacters(charactersData);
+          
+          // Set default character to first one
+          if (charactersData.length > 0) {
+            const firstCharacter = charactersData[0];
+            setFormData(prev => ({
+              ...prev,
+              character: firstCharacter.id,
+              description: firstCharacter.description.replace(/{{user}}/g, '{{your name}}')
+            }));
+          }
+        } else {
+          console.error('Failed to fetch characters');
+        }
+      } catch (error) {
+        console.error('Error fetching characters:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCharacters();
+  }, []);
+
+  // Update current time in selected timezone
+  useEffect(() => {
+    const updateTime = () => {
+      try {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', {
+          timeZone: formData.timezone,
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZoneName: 'short'
+        });
+        setCurrentTime(timeString);
+      } catch (error) {
+        // Fallback if timezone is invalid
+        setCurrentTime('Invalid timezone');
+      }
+    };
+    
+    updateTime(); // Initial call
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, [formData.timezone]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    // Update character description when name changes
-    if (name === 'name') {
-      setFormData(prev => {
-        // Always start with the base template and replace {{your name}} with the current name
-        const baseTemplate = 'A brief, friendly chat to start your day, {{your name}}. We\'ll check in on your schedule and maybe share a fun fact.';
-        const updatedDescription = value.trim() 
-          ? baseTemplate.replace(/{{your name}}/g, value)
-          : baseTemplate;
+    
+    if (name === 'character') {
+      // Character selection changed
+      const selectedCharacter = characters.find(char => char.id === value);
+      if (selectedCharacter) {
+        const baseDescription = selectedCharacter.description.replace(/{{user}}/g, '{{your name}}');
+        const finalDescription = formData.name.trim() 
+          ? baseDescription.replace(/{{your name}}/g, formData.name)
+          : baseDescription;
         
-        return {
+        setFormData(prev => ({
           ...prev,
-          description: updatedDescription
-        };
-      });
+          character: value,
+          description: finalDescription
+        }));
+      }
+    } else if (name === 'name') {
+      // Name changed - update description with new name
+      const selectedCharacter = characters.find(char => char.id === formData.character);
+      if (selectedCharacter) {
+        const baseDescription = selectedCharacter.description.replace(/{{user}}/g, '{{your name}}');
+        const finalDescription = value.trim() 
+          ? baseDescription.replace(/{{your name}}/g, value)
+          : baseDescription;
+        
+        setFormData(prev => ({
+          ...prev,
+          name: value,
+          description: finalDescription
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+      }
+    } else {
+      // Other fields
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
   };
 
@@ -58,16 +147,19 @@ export default function Home() {
 
       if (response.ok) {
         setSubmitMessage('✅ Success! Your morning call has been scheduled.');
-        // Reset form
-        setFormData({
-          name: '',
-          phoneNumber: '',
-          city: '',
-          localCallTime: '09:00',
-          timezone: 'America/Los_Angeles',
-          character: 'Xavier',
-          description: 'A brief, friendly chat to start your day, {{your name}}. We\'ll check in on your schedule and maybe share a fun fact.'
-        });
+        // Reset form to default character
+        if (characters.length > 0) {
+          const firstCharacter = characters[0];
+          setFormData({
+            name: '',
+            phoneNumber: '',
+            city: '',
+            localCallTime: '09:00',
+            timezone: 'America/Los_Angeles',
+            character: firstCharacter.id,
+            description: firstCharacter.description.replace(/{{user}}/g, '{{your name}}')
+          });
+        }
       } else {
         setSubmitMessage(`❌ Error: ${result.error || 'Something went wrong'}`);
       }
@@ -105,6 +197,9 @@ export default function Home() {
                 onChange={handleInputChange}
                 placeholder="Enter your name"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Your character will use this name when talking to you
+              </p>
             </div>
 
             <div>
@@ -121,6 +216,9 @@ export default function Home() {
                 onChange={handleInputChange}
                 placeholder="+1 (555) 123-4567"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Include country code (e.g., +1 for US/Canada)
+              </p>
             </div>
 
             <div>
@@ -137,11 +235,14 @@ export default function Home() {
                 onChange={handleInputChange}
                 placeholder="San Francisco"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Your character will know the weather in your city today
+              </p>
             </div>
 
             <div>
               <label htmlFor="localCallTime" className="block text-sm font-medium text-rose-700 mb-1">
-                Call Time *
+                Call Time (in your local time) *
               </label>
               <input 
                 type="time" 
@@ -222,6 +323,9 @@ export default function Home() {
                   <option value="Africa/Lagos">West Africa Time (WAT) - Lagos</option>
                 </optgroup>
               </select>
+              <p className="mt-1 text-xs text-gray-500">
+                So it should be {currentTime} for you right now.
+              </p>
             </div>
           </div>
 
@@ -233,22 +337,29 @@ export default function Home() {
               <label htmlFor="character" className="block text-sm font-medium text-rose-700 mb-1">
                 Choose a Character *
               </label>
-              <select 
-                id="character"
-                name="character"
-                required
-                className="w-full px-3 py-2 bg-pink-50/50 border border-pink-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-colors"
-                value={formData.character}
-                onChange={handleInputChange}
-              >
-                <optgroup label="Love and Deepspace">
-                  <option value="Xavier">Xavier</option>
-                  <option value="Zayne">Zayne</option>
-                  <option value="Rafayel">Rafayel</option>
-                  <option value="Sylus">Sylus</option>
-                  <option value="Caleb">Caleb</option>
-                </optgroup>
-              </select>
+              {loading ? (
+                <div className="w-full px-3 py-2 bg-pink-50/50 border border-pink-200 rounded-lg text-gray-500">
+                  Loading characters...
+                </div>
+              ) : (
+                <select 
+                  id="character"
+                  name="character"
+                  required
+                  className="w-full px-3 py-2 bg-pink-50/50 border border-pink-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-colors"
+                  value={formData.character}
+                  onChange={handleInputChange}
+                >
+                  {characters.map(character => (
+                    <option key={character.id} value={character.id}>
+                      {character.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                Each character has their own personality and way of talking to you
+              </p>
             </div>
 
             <div>
@@ -260,13 +371,13 @@ export default function Home() {
                 name="description"
                 rows={8}
                 required
-                className="w-full px-3 py-2 bg-pink-50/50 border border-pink-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition-colors"
+                readOnly
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg shadow-sm text-gray-700 cursor-not-allowed"
                 value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Describe how you want your AI assistant to behave during the call..."
+                placeholder={loading ? "Loading character description..." : "Select a character to see their description"}
               />
-              <p className="mt-2 text-xs text-rose-600">
-                This description guides the AI's personality during your call. The <code className="bg-pink-100 text-pink-800 px-1 py-0.5 rounded">{'{your name}'}</code> placeholder will be replaced with your name.
+              <p className="mt-1 text-xs text-gray-500">
+                Right now you can't change the character description, but I'm working on it!
               </p>
             </div>
           </div>
@@ -288,7 +399,7 @@ export default function Home() {
             </button>
           </div>
         </form>
-      </div>
+    </div>
     </main>
   );
 }

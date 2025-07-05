@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "dotenv": "^17.0.1",
     "firebase-admin": "^13.4.0",
     "next": "15.3.5",
     "react": "^19.0.0",

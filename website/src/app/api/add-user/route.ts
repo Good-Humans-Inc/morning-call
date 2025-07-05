@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 
-// This is a placeholder for your service account credentials.
-// We will replace this with environment variables later for security.
-const serviceAccount = {
-  // Your service account key JSON would go here
-};
-
-// Initialize Firebase Admin
+// Initialize Firebase Admin using environment variables
 if (!admin.apps.length) {
+  const serviceAccount = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS || '{}');
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
